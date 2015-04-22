@@ -1,23 +1,40 @@
-import re
+from bs4 import BeautifulSoup
+import requests
+from requests.exceptions import MissingSchema, InvalidSchema, RequestException
 
 from core.base import BaseCrawler
 
 from httplib import ReqRequest
 
 
-python_sentence_re = re.compile('''<a[^>]+href="([^>]+)">''')
-
-
 class ChildCrawler(BaseCrawler):
     ENTRY_REQUESTS = ReqRequest('http://jooglin.com')
 
     def extract_items(self, response):
+        matches = []
         try:
             html_code = response.content.decode('utf8')
-            matches = python_sentence_re.findall(html_code)
-        except UnicodeDecodeError as e:
-            print(e)
-            matches = tuple()
+
+            soup = BeautifulSoup(html_code)
+            for link in soup.find_all('a'):
+                try:
+                    requests.get(link)
+                    matches.append(link.get('href'))
+                except MissingSchema:
+                    scheme = self.ENTRY_REQUESTS.scheme
+                    hostname = self.ENTRY_REQUESTS.hostname
+
+                    href = link.get('href')
+                    if href.startswith('/'):
+                        url_pattern = "%s://%s%s"
+                    else:
+                        url_pattern = "%s://%s/%s"
+                    url = url_pattern % (scheme, hostname, href)
+                    matches.append(url)
+                except InvalidSchema:
+                    pass
+        except UnicodeDecodeError:
+            pass
 
         return matches
 
@@ -25,4 +42,3 @@ class ChildCrawler(BaseCrawler):
         return [
             ReqRequest('http://facebook.com')
         ]
-        return None

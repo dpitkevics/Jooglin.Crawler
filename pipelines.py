@@ -10,14 +10,6 @@ class FilterPipeline(BasePipeline):
             response = requests.get(item)
             if response.status_code != 200:
                 raise RequestException()
-        except MissingSchema:
-            scheme = crawler.ENTRY_REQUESTS.scheme
-            hostname = crawler.ENTRY_REQUESTS.hostname
-            url = "%s://%s%s" % (scheme, hostname, item)
-
-            return self.process(crawler, url)
-        except InvalidSchema:
-            return None
         except RequestException:
             return None
 
